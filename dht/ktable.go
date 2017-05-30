@@ -1,20 +1,16 @@
 package dht
 
-import (
-	"container/list"
-)
-
-// KTable 路由表
-type KTable struct {
-	*list.List
+// kTable 路由表
+type kTable struct {
+	nodes []*kNode
 }
 
-// NewKTable 新建路由表
-func NewKTable() *KTable {
-	return &KTable{}
+// newKTable 新建路由表
+func newKTable() *kTable {
+	return &kTable{make([]*kNode, 0, 8192)}
 }
 
-// Size KTable 的大小
-func (ktable *KTable) Size() int {
-	return ktable.List.Len()
+// size KTable 的大小
+func (ktable *kTable) size() int {
+	return len(ktable.nodes)
 }
