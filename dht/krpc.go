@@ -6,54 +6,62 @@ import (
 )
 
 // KRPC krpc 协议
-type KRPC struct {
+type kRPC struct {
 	udpConn *net.UDPConn
 }
 
 // NewKRPC 新建 krpc 协议
-func NewKRPC(conn *net.UDPConn) *KRPC {
-	return &KRPC{udpConn: conn}
+func newKRPC(conn *net.UDPConn) *kRPC {
+	return &kRPC{udpConn: conn}
 }
 
 // sendKRPC 发送 KRPC 请求
-func (krpc *KRPC) sendKRPC(msg map[string]interface{}, host string, port int) {
+func (krpc *kRPC) sendKRPC(msg map[string]interface{}, host string, port int) {
 	udpAddress, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 
-	encodeMsg, err := EncodeBencode(msg)
+	message, err := encodeBencode(msg)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 
-	_, err = krpc.udpConn.WriteToUDP(encodeMsg, udpAddress)
+	_, err = krpc.udpConn.WriteToUDP(message, udpAddress)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 }
 
-// SendFindNode find_node 请求
-func (krpc *KRPC) SendFindNode() {
+// sendFindNode find_node 请求
+func (krpc *kRPC) sendFindNode(target *kNode) {
 
 }
 
-// ResponsePing ping 响应
-func (krpc *KRPC) ResponsePing(msg map[string]interface{}, address *net.UDPAddr) {
+// responsePing ping 响应
+func (krpc *kRPC) responsePing(msg map[string]interface{}, address *net.UDPAddr) {
 
 }
 
-// ResponseFindNode find_node 响应
-func (krpc *KRPC) ResponseFindNode(msg map[string]interface{}, address *net.UDPAddr) {
+// responseFindNode find_node 响应
+func (krpc *kRPC) responseFindNode(msg map[string]interface{}, address *net.UDPAddr) {
 
 }
 
-// ResponseAnnouncePeer announce_peer 响应
-func (krpc *KRPC) ResponseAnnouncePeer(msg map[string]interface{}, address *net.UDPAddr) {
+// responseAnnouncePeer announce_peer 响应
+func (krpc *kRPC) responseAnnouncePeer(msg map[string]interface{}, address *net.UDPAddr) {
 
 }
 
-// ResponseGetPeers get_peers 响应
-func (krpc *KRPC) ResponseGetPeers(msg map[string]interface{}, address *net.UDPAddr) {
+// responseGetPeers get_peers 响应
+func (krpc *kRPC) responseGetPeers(msg map[string]interface{}, address *net.UDPAddr) {
+
+}
+
+// responseError error 响应
+func (krpc *kRPC) responseError(msg map[string]interface{}, address *net.UDPAddr) {
 
 }
