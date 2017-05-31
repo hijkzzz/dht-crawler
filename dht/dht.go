@@ -9,15 +9,9 @@ import (
 
 // BootstrapNodes 初始节点
 var BootstrapNodes = []*kNode{
-	newKNode(-1, "router.bittorrent.com", 6881),
-	newKNode(-1, "dht.transmissionbt.com", 6881),
-	newKNode(-1, "router.utorrent.com", 6881)}
-
-// TIDLength 交易号长
-var TIDLength = 2
-
-// TokenLength Token 长度
-var TokenLength = 2
+	newKNode("", "router.bittorrent.com", 6881),
+	newKNode("", "dht.transmissionbt.com", 6881),
+	newKNode("", "router.utorrent.com", 6881)}
 
 // DHT BEP005 服务实现
 type DHT struct {
@@ -27,7 +21,7 @@ type DHT struct {
 	ktable    *kTable                // 路由表
 	krpc      *kRPC                  // KRPC 协议
 	udpConn   *net.UDPConn           // UDP 连接
-	waitGroup *sync.WaitGroup        //等待子线程
+	waitGroup *sync.WaitGroup        // 等待子线程
 }
 
 // NewDHT 新建 DHT 服务器
@@ -73,6 +67,7 @@ func (dht *DHT) Run() {
 
 // receiveMessages 处理 UDP 报文
 func (dht *DHT) receiveMessages() {
+	defer dht.waitGroup.Done()
 	defer dht.udpConn.Close()
 
 	buff := make([]byte, 65536)
@@ -112,38 +107,37 @@ func (dht *DHT) receiveMessages() {
 			fmt.Println("KRPC not support q " + method)
 		}
 	}
-
-	dht.waitGroup.Done()
 }
 
 // findNewNodes 更新路由表
 func (dht *DHT) updateKtable() {
+	defer dht.waitGroup.Done()
+
 	for true {
 		len := dht.ktable.size()
 		if len == 0 {
 			for _, node := range BootstrapNodes {
-				dht.krpc.sendFindNode(node)
+				dht.krpc.sendFindNode(node, getNeigborID(node.nid, dht.krpc.nid, 10))
 			}
 
 		} else {
 			for len > 0 {
 				len--
 				node := dht.ktable.pop()
-				dht.krpc.sendFindNode(node)
+				dht.krpc.sendFindNode(node, getNeigborID(node.nid, dht.krpc.nid, 10))
 			}
 
 			time.Sleep(1 * time.Second)
 		}
 	}
-
-	dht.waitGroup.Done()
 }
 
 // processInfoHash 处理 info_hash
 func (dht *DHT) processInfoHash() {
+	defer dht.waitGroup.Done()
+
 	for true {
 		message := <-dht.logger
-		fmt.Println(message["info_hash"].(string))
-
-	dht.waitGroup.Done()
+		fmt.Println(message["info_hash"])
+	}
 }
