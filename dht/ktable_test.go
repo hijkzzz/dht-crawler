@@ -16,7 +16,7 @@ func TestKTable(t *testing.T) {
 		i := 0
 		for true {
 			fmt.Println("PUSH " + strconv.Itoa(i))
-			ktable.push(&kNode{nid: i})
+			ktable.push(&kNode{nid: strconv.Itoa(i)})
 			i++
 		}
 		w.Done()
@@ -25,7 +25,7 @@ func TestKTable(t *testing.T) {
 	// 线程 2
 	go func() {
 		for true {
-			fmt.Println("POP " + strconv.Itoa(ktable.pop().nid))
+			fmt.Println("POP " + ktable.pop().nid)
 		}
 		w.Done()
 	}()

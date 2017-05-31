@@ -4,15 +4,20 @@ import (
 	"fmt"
 )
 
+// getNeigborID 生成一个邻居节点
+func getNeigborID(target string, nid string, end int) string {
+	return target[:end] + nid[end:]
+}
+
 // KNode DHT 网络节点
 type kNode struct {
-	nid  int
+	nid  string
 	host string
 	port int
 }
 
 // NewKNode 新建 DHT 网络节点
-func newKNode(nid int, ip string, port int) *kNode {
+func newKNode(nid string, ip string, port int) *kNode {
 	return &kNode{nid, ip, port}
 }
 
