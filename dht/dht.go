@@ -3,6 +3,7 @@ package dht
 import (
 	"fmt"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -12,27 +13,25 @@ var BootstrapNodes = []*kNode{
 	newKNode(-1, "dht.transmissionbt.com", 6881),
 	newKNode(-1, "router.utorrent.com", 6881)}
 
-// TIDLength 交易号长度
+// TIDLength 交易号长
 var TIDLength = 2
-
-// ReJoinDHTInterval 重加入间隔(秒)
-var ReJoinDHTInterval = 3
 
 // TokenLength Token 长度
 var TokenLength = 2
 
 // DHT BEP005 服务实现
 type DHT struct {
-	bindHost string                 // 监听地址
-	bindPort int                    // 监听端口
-	logger   chan map[string]string // info_hash 导出
-	ktable   *kTable                // 路由表
-	krpc     *kRPC                  // KRPC 协议
-	udpConn  *net.UDPConn           // UDP 连接
+	bindHost  string                 // 监听地址
+	bindPort  int                    // 监听端口
+	logger    chan map[string]string // 传输 info_hash
+	ktable    *kTable                // 路由表
+	krpc      *kRPC                  // KRPC 协议
+	udpConn   *net.UDPConn           // UDP 连接
+	waitGroup *sync.WaitGroup        //等待子线程
 }
 
 // NewDHT 新建 DHT 服务器
-func NewDHT(host string, port int, logger chan map[string]string) *DHT {
+func NewDHT(host string, port int) *DHT {
 	// 监听 UDP 端口
 	udpAddress, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
@@ -44,17 +43,32 @@ func NewDHT(host string, port int, logger chan map[string]string) *DHT {
 		panic(err)
 	}
 
-	return &DHT{bindHost: host, bindPort: port, logger: logger,
-		ktable: newKTable(), krpc: newKRPC(udpConn), udpConn: udpConn}
+	// 传输 info_hash
+	logger := make(chan map[string]string, 8192)
+
+	return &DHT{bindHost: host,
+		bindPort:  port,
+		logger:    logger,
+		ktable:    newKTable(),
+		krpc:      newKRPC(udpConn, logger),
+		udpConn:   udpConn,
+		waitGroup: new(sync.WaitGroup)}
 }
 
 // Run 运行 DHT 服务器
 func (dht *DHT) Run() {
+	dht.waitGroup.Add(3)
+
 	// 线程1, 更新路由表
-	go dht.findNewNodes()
+	go dht.updateKtable()
 
 	// 线程2, 处理 UDP 报文
 	go dht.receiveMessages()
+
+	// 线程3，处理 info_hash
+	go dht.processInfoHash()
+
+	dht.waitGroup.Wait()
 }
 
 // receiveMessages 处理 UDP 报文
@@ -98,21 +112,38 @@ func (dht *DHT) receiveMessages() {
 			fmt.Println("KRPC not support q " + method)
 		}
 	}
+
+	dht.waitGroup.Done()
 }
 
 // findNewNodes 更新路由表
-func (dht *DHT) findNewNodes() {
+func (dht *DHT) updateKtable() {
 	for true {
-		if dht.ktable.size() == 0 {
+		len := dht.ktable.size()
+		if len == 0 {
 			for _, node := range BootstrapNodes {
 				dht.krpc.sendFindNode(node)
 			}
+
 		} else {
-			for _, node := range dht.ktable.nodes {
+			for len > 0 {
+				len--
+				node := dht.ktable.pop()
 				dht.krpc.sendFindNode(node)
 			}
 
 			time.Sleep(1 * time.Second)
 		}
 	}
+
+	dht.waitGroup.Done()
+}
+
+// processInfoHash 处理 info_hash
+func (dht *DHT) processInfoHash() {
+	for true {
+		message := <-dht.logger
+		fmt.Println(message["info_hash"].(string))
+
+	dht.waitGroup.Done()
 }
