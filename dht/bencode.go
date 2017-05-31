@@ -1,125 +1,195 @@
 package dht
 
 import (
-	"bytes"
 	"errors"
-	"reflect"
 	"strconv"
+	"strings"
 )
 
 // encodeBencode bencode 编码
 func encodeBencode(msg map[string]interface{}) ([]byte, error) {
-	var b bytes.Buffer
-	b.WriteByte('t') //buffer第一位用来判断编码类型是否正确
-	encodeDictionary(&b, msg)
-	var bytes = b.Bytes()
-	if bytes[0] == 'f' {
-		return []byte{}, errors.New("error: The type of argument does't conform to the bencode specification")
+	if msg == nil || len(msg) == 0 {
+		return nil, errors.New("msg is null")
 	}
-
-	return bytes[1:len(bytes)], nil
+	var err error
+	str, err := encodeDict(msg)
+	if err != nil {
+		return nil, errors.New("EncodeBencode")
+	}
+	return []byte(str), nil
 }
 
 // decodeBencode bencode 解码
 func decodeBencode(msg []byte) (map[string]interface{}, error) {
-	return make(map[string]interface{}), errors.New("this is a new error")
-}
 
-/*
-*func：int编码
- */
-func encodeInt(b *bytes.Buffer, oldInt int64) {
-	b.WriteByte('i')
-	b.WriteString(strconv.FormatInt(oldInt, 10))
-	b.WriteByte('e')
-}
-
-/*
-*func：uint编码
- */
-func encodeUint(b *bytes.Buffer, oldInt uint64) {
-	b.WriteByte('i')
-	b.WriteString(strconv.FormatUint(oldInt, 10))
-	b.WriteByte('e')
-}
-
-/*
-*func：string编码
- */
-func encodeString(b *bytes.Buffer, oldStr string) {
-	b.WriteString(strconv.Itoa(len(oldStr)))
-	b.WriteByte(':')
-	b.WriteString(oldStr)
-}
-
-/*
-*func：list编码
- */
-func encodeList(b *bytes.Buffer, oldList []interface{}) {
-	b.WriteByte('l')
-	for _, o := range oldList {
-		encodeInterface(b, o)
+	if msg == nil || len(msg) == 0 {
+		return nil, errors.New("msg is null")
 	}
-	b.WriteByte('e')
-
-}
-
-/*
-*func：dictionary编码
- */
-func encodeDictionary(b *bytes.Buffer, oldDir map[string]interface{}) {
-	b.WriteByte('d')
-	for o := range oldDir {
-		encodeString(b, o)
-		encodeInterface(b, oldDir[o])
+	var result map[string]interface{}
+	var err error
+	result, _, err = decodeDict(msg, 0)
+	if err != nil {
+		return nil, errors.New("DecodeBencode")
 	}
-	b.WriteByte('e')
+	return result, nil
 }
 
-/*
-*func：interface{}编码
-*匹配不同的数据类型
-*用于dictionary数据项和list的不同对象的解码
- */
-func encodeInterface(b *bytes.Buffer, oldData interface{}) {
-	switch oldData := oldData.(type) {
-	case int, int8, int16, int32, int64:
-		encodeInt(b, reflect.ValueOf(oldData).Int())
-	case uint, uint8, uint16, uint32, uint64:
-		encodeUint(b, reflect.ValueOf(oldData).Uint())
+// encodeInterface
+func encodeInterface(data interface{}) (string, error) {
+	switch data.(type) {
+	case int:
+		return encodeInt(data.(int))
 	case string:
-		encodeString(b, oldData)
+		return encodeString(data.(string))
 	case []interface{}:
-		encodeList(b, oldData)
+		return encodeList(data.([]interface{}))
 	case map[string]interface{}:
-		encodeDictionary(b, oldData)
+		return encodeDict(data.(map[string]interface{}))
 	default:
-		var nb bytes.Buffer
-		nb.WriteByte('f')
-		*b = nb
+		return "error", errors.New("invalid type when encode")
 	}
 }
 
-/*
-*func：字符串解码
-*返回值string：解码结果
-*返回值bool：传参oldStr是否符合bencode编码规范
- */
-func decodeString(oldStr string) (string, bool) {
-	var sLen = ""
-	var newStr = ""
-	for i := 0; i < len(oldStr); i++ {
-		if oldStr[i] == ':' {
-			sLen = oldStr[0:i]
-			newStr = oldStr[i+1 : len(oldStr)]
+// 将int类型转化为bencode编码
+func encodeInt(data int) (string, error) {
+	return strings.Join([]string{"i", "e"}, strconv.Itoa(data)), nil
+}
+
+// 将string类型转化为bencode编码
+func encodeString(data string) (string, error) {
+	return strings.Join([]string{strconv.Itoa(len(data)), data}, ":"), nil
+}
+
+// 将list类型转化为bencode编码
+func encodeList(data []interface{}) (string, error) {
+	result := ""
+	for _, item := range data {
+		var err error
+		str, err := encodeInterface(item)
+		if err != nil {
+			return "error", errors.New("encodeList")
+		}
+		result = strings.Join([]string{result, str}, "")
+	}
+	return strings.Join([]string{"l", result, "e"}, ""), nil
+}
+
+// 将map类型转化为bencode编码
+func encodeDict(data map[string]interface{}) (string, error) {
+	result := ""
+	for key, item := range data {
+		str1, _ := encodeString(key)
+		var err error
+		str2, err := encodeInterface(item)
+		if err != nil {
+			return "error", errors.New("encodeDict")
+		}
+		result = strings.Join([]string{result, str1, str2}, "")
+	}
+	return strings.Join([]string{"d", result, "e"}, ""), nil
+}
+
+// decodeInterface
+func decodeInterface(data []byte, start int) (interface{}, int, error) {
+	switch data[start] {
+	case 'i':
+		return decodeInt(data, start)
+	case '1', '2', '3', '4', '5', '6', '7', '8', '9':
+		return decodeString(data, start)
+	case 'l':
+		return decodeList(data, start)
+	case 'd':
+		return decodeDict(data, start)
+	default:
+		return nil, -1, errors.New("invalid type when encode")
+	}
+}
+
+// 解码int类型
+func decodeInt(data []byte, start int) (int, int, error) {
+	end := start + 1
+	for data[end] != 'e' {
+		end++
+		if end == len(data) {
+			return -1, -1, errors.New("e not found when decode int")
+		}
+	}
+	num, _ := strconv.Atoi(string(data[start+1 : end]))
+	return num, end + 1, nil
+}
+
+// 解码string类型
+func decodeString(data []byte, start int) (string, int, error) {
+	middle := start + 1
+	for data[middle] != ':' {
+		middle++
+		if middle == len(data) {
+			return "", -1, errors.New("： not found when decode string")
+		}
+	}
+	len, _ := strconv.Atoi(string(data[start:middle]))
+	end := middle + len + 1
+	return string(data[middle+1 : end]), end, nil
+}
+
+// 解码List类型
+func decodeList(data []byte, start int) ([]interface{}, int, error) {
+	list := make([]interface{}, 0)
+	end := start + 1
+	for end < len(data) {
+		var item interface{}
+		var err error
+		item, end, err = decodeInterface(data, end)
+		if err != nil {
+			return nil, -1, errors.New("decodeList")
+		}
+		list = append(list, item)
+		if data[end] == 'e' {
+			break
+		}
+		if end == len(data) {
+			return nil, -1, errors.New("e not found when decode list")
+		}
+	}
+	return list, end + 1, nil
+}
+
+// 解码字典类型
+func decodeDict(data []byte, start int) (map[string]interface{}, int, error) {
+	dict := make(map[string]interface{})
+	end := start + 1
+	for end < len(data) {
+		var key interface{}
+		var item interface{}
+		var err1 error
+		key, end, err1 = decodeInterface(data, end)
+		if err1 != nil {
+			return nil, -1, errors.New("invalid type of dictionary")
+		}
+		switch key.(type) {
+		case string:
+		default:
+			return nil, -1, errors.New("invalid type of dictionary")
+		}
+
+		if data[end] == 'e' {
+			return nil, -1, errors.New("invalid type of dictionary")
+		}
+		if end == len(data) {
+			return nil, -1, errors.New("e not found when decode list")
+		}
+		var err2 error
+		item, end, err2 = decodeInterface(data, end)
+		if err2 != nil {
+			return nil, -1, errors.New("invalid type of dictionary")
+		}
+		dict[key.(string)] = item
+		if end == len(data) {
+			return nil, -1, errors.New("e not found when decode list")
+		}
+		if data[end] == 'e' {
 			break
 		}
 	}
-
-	a, error := strconv.Atoi(sLen)
-	if error != nil || a != len(newStr) || a < 1 {
-		return "", false
-	}
-
-	return newStr, true
+	return dict, end + 1, nil
 }
