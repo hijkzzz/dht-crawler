@@ -8,11 +8,12 @@ import (
 // KRPC krpc 协议
 type kRPC struct {
 	udpConn *net.UDPConn
+	logger  chan<- map[string]string
 }
 
 // NewKRPC 新建 krpc 协议
-func newKRPC(conn *net.UDPConn) *kRPC {
-	return &kRPC{udpConn: conn}
+func newKRPC(conn *net.UDPConn, logger chan<- map[string]string) *kRPC {
+	return &kRPC{udpConn: conn, logger: logger}
 }
 
 // sendKRPC 发送 KRPC 请求
