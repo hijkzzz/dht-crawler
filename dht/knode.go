@@ -2,6 +2,7 @@ package dht
 
 import (
 	"fmt"
+	"net"
 )
 
 // getNeigborID 生成一个邻居节点
@@ -23,4 +24,12 @@ func newKNode(nid string, ip string, port int) *kNode {
 
 func (knode *kNode) getHostPort() string {
 	return fmt.Sprintf("%s:%d", knode.host, knode.port)
+}
+
+func (knode *kNode) getUDPAddr() *net.UDPAddr {
+	udpAddress, err := net.ResolveUDPAddr("udp", knode.getHostPort())
+	if err != nil {
+		panic(err)
+	}
+	return udpAddress
 }
