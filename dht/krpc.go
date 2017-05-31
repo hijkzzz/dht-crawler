@@ -28,6 +28,11 @@ func entropy(len int) string {
 	return buff.String()
 }
 
+// decodeCompactNodeInfo Compact Node Info 解码
+func decodeCompactNodeInfo(nodes []interface{}) []*kNode {
+	return nil
+}
+
 // KRPC krpc 协议
 type kRPC struct {
 	nid     string                   // 本节点ID
@@ -63,7 +68,7 @@ func (krpc *kRPC) sendKRPC(msg map[string]interface{}, address *net.UDPAddr) {
 	}
 }
 
-// sendFindNode find_node 请求
+// sendFindNode 发送 find_node 请求
 func (krpc *kRPC) sendFindNode(target string, address *net.UDPAddr) {
 	tid := entropy(TIDLength)
 
@@ -80,27 +85,56 @@ func (krpc *kRPC) sendFindNode(target string, address *net.UDPAddr) {
 	krpc.sendKRPC(msg, address)
 }
 
-// responsePing ping 响应
-func (krpc *kRPC) responsePing(msg map[string]interface{}, address *net.UDPAddr) {
+// responseFindNode 处理 find_node 响应
+func (krpc *kRPC) responseFindNode(msg map[string]interface{}, address *net.UDPAddr) {
+	// 处理消息
+	tid, ok := msg["t"].(string)
+	if !ok {
+		fmt.Println("Message 'find_node' missing 'tid'")
+		return
+	}
+
+	r, ok := msg["r"].(map[string]interface{})
+	if !ok {
+		fmt.Println("Message 'find_node' missing 'r'")
+		return
+	}
+
+	nodes, ok := r["nodes"].([]interface{})
+	if !ok {
+		fmt.Println("Message 'find_node' missing 'nodes'")
+		return
+	}
+
+	compactNodeInfos := decodeCompactNodeInfo(nodes)
+
+	// 路由表更新
+	for _, node := range compactNodeInfos {
+		krpc.ktable.push(node)
+	}
+}
+
+// requestPing 处理 ping 请求
+func (krpc *kRPC) requestPing(msg map[string]interface{}, address *net.UDPAddr) {
 	krpc.sendKRPC(msg, address)
 }
 
-// responseFindNode find_node 响应
-func (krpc *kRPC) responseFindNode(msg map[string]interface{}, address *net.UDPAddr) {
+// requestFindNode 处理 find_node 请求
+func (krpc *kRPC) requestFindNode(msg map[string]interface{}, address *net.UDPAddr) {
 
 }
 
-// responseAnnouncePeer announce_peer 响应
-func (krpc *kRPC) responseAnnouncePeer(msg map[string]interface{}, address *net.UDPAddr) {
+// responseAnnouncePeer 处理 announce_peer 请求
+func (krpc *kRPC) requestAnnouncePeer(msg map[string]interface{}, address *net.UDPAddr) {
 
 }
 
-// responseGetPeers get_peers 响应
-func (krpc *kRPC) responseGetPeers(msg map[string]interface{}, address *net.UDPAddr) {
+// responseGetPeers 处理 get_peers 请求
+func (krpc *kRPC) requestGetPeers(msg map[string]interface{}, address *net.UDPAddr) {
 
 }
 
-// responseError error 响应
-func (krpc *kRPC) responseError(msg map[string]interface{}, address *net.UDPAddr) {
+// responseError 发送 error 信息
+func (krpc *kRPC) sendError(msg map[string]interface{}, address *net.UDPAddr) {
 
 }

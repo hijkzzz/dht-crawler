@@ -88,25 +88,39 @@ func (dht *DHT) receiveMessages() {
 			return
 		}
 
-		// 请求格式判断
-		method, ok := message["q"].(string)
+		// 报文类型判断
+		y, ok := message["y"].(string)
 		if !ok {
-			fmt.Println("KRPC request missing q field")
+			fmt.Println("KRPC request missing y field")
 			return
 		}
 
-		switch method {
-		case "ping":
-			dht.krpc.responsePing(message, raddr)
-		case "find_node":
+		if y == "q" { //处理请求报文
+			q, ok := message["q"].(string)
+			if !ok {
+				fmt.Println("KRPC request missing q field")
+				return
+			}
+
+			switch q {
+			case "ping":
+				dht.krpc.requestPing(message, raddr)
+			case "find_node":
+				dht.krpc.requestFindNode(message, raddr)
+			case "get_peers":
+				dht.krpc.requestGetPeers(message, raddr)
+			case "announce_peer":
+				// 收集 announce_peer 的 info_hash
+				dht.krpc.requestAnnouncePeer(message, raddr)
+			default:
+				dht.krpc.sendError(message, raddr)
+				fmt.Println("KRPC not support 'q' " + q)
+			}
+		} else if y == "r" { //处理响应报文
 			dht.krpc.responseFindNode(message, raddr)
-		case "get_peers":
-			dht.krpc.responseGetPeers(message, raddr)
-		case "announce_peer":
-			dht.krpc.responseAnnouncePeer(message, raddr)
-		default:
-			dht.krpc.responseError(message, raddr)
-			fmt.Println("KRPC not support q " + method)
+		} else {
+			dht.krpc.sendError(message, raddr)
+			fmt.Println("KRPC value of 'y' error " + y)
 		}
 	}
 }
