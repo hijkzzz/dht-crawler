@@ -30,13 +30,14 @@ func entropy(len int) string {
 
 // KRPC krpc 协议
 type kRPC struct {
-	nid     string
-	udpConn *net.UDPConn
-	logger  chan<- map[string]string
+	nid     string                   // 本节点ID
+	udpConn *net.UDPConn             // UDP 描述符
+	ktable  *kTable                  // DHT 路由表
+	logger  chan<- map[string]string // info_hash 传输
 }
 
 // NewKRPC 新建 krpc 协议
-func newKRPC(conn *net.UDPConn, logger chan<- map[string]string) *kRPC {
+func newKRPC(dht *DHT) *kRPC {
 	// 生成 nid
 	rnd := entropy(20)
 	t := sha1.New()
@@ -44,24 +45,18 @@ func newKRPC(conn *net.UDPConn, logger chan<- map[string]string) *kRPC {
 	nid := fmt.Sprintf("%x", t.Sum(nil))
 	fmt.Println("[NID] " + nid)
 
-	return &kRPC{nid: nid, udpConn: conn, logger: logger}
+	return &kRPC{nid: nid, udpConn: dht.udpConn, ktable: dht.ktable, logger: dht.logger}
 }
 
 // sendKRPC 发送 KRPC 请求
-func (krpc *kRPC) sendKRPC(msg map[string]interface{}, host string, port int) {
-	udpAddress, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", host, port))
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
+func (krpc *kRPC) sendKRPC(msg map[string]interface{}, address *net.UDPAddr) {
 	message, err := encodeBencode(msg)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	_, err = krpc.udpConn.WriteToUDP(message, udpAddress)
+	_, err = krpc.udpConn.WriteToUDP(message, address)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -69,7 +64,7 @@ func (krpc *kRPC) sendKRPC(msg map[string]interface{}, host string, port int) {
 }
 
 // sendFindNode find_node 请求
-func (krpc *kRPC) sendFindNode(node *kNode, target string) {
+func (krpc *kRPC) sendFindNode(target string, address *net.UDPAddr) {
 	tid := entropy(TIDLength)
 
 	msg := map[string]interface{}{
@@ -82,12 +77,12 @@ func (krpc *kRPC) sendFindNode(node *kNode, target string) {
 		},
 	}
 
-	krpc.sendKRPC(msg, node.host, node.port)
+	krpc.sendKRPC(msg, address)
 }
 
 // responsePing ping 响应
 func (krpc *kRPC) responsePing(msg map[string]interface{}, address *net.UDPAddr) {
-
+	krpc.sendKRPC(msg, address)
 }
 
 // responseFindNode find_node 响应

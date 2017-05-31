@@ -37,16 +37,18 @@ func NewDHT(host string, port int) *DHT {
 		panic(err)
 	}
 
-	// 传输 info_hash
-	logger := make(chan map[string]string, 8192)
-
-	return &DHT{bindHost: host,
+	// 新建 DHT 服务器
+	dht := &DHT{bindHost: host,
 		bindPort:  port,
-		logger:    logger,
+		logger:    make(chan map[string]string, 8192),
 		ktable:    newKTable(),
-		krpc:      newKRPC(udpConn, logger),
 		udpConn:   udpConn,
 		waitGroup: new(sync.WaitGroup)}
+
+	// krpc 协议初始化
+	dht.krpc = newKRPC(dht)
+
+	return dht
 }
 
 // Run 运行 DHT 服务器
@@ -117,14 +119,14 @@ func (dht *DHT) updateKtable() {
 		len := dht.ktable.size()
 		if len == 0 {
 			for _, node := range BootstrapNodes {
-				dht.krpc.sendFindNode(node, getNeigborID(node.nid, dht.krpc.nid, 10))
+				dht.krpc.sendFindNode(getNeigborID(node.nid, dht.krpc.nid, 10), node.getUDPAddr())
 			}
 
 		} else {
 			for len > 0 {
 				len--
 				node := dht.ktable.pop()
-				dht.krpc.sendFindNode(node, getNeigborID(node.nid, dht.krpc.nid, 10))
+				dht.krpc.sendFindNode(getNeigborID(node.nid, dht.krpc.nid, 10), node.getUDPAddr())
 			}
 
 			time.Sleep(1 * time.Second)
