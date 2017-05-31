@@ -8,7 +8,7 @@ import (
 
 // encodeBencode bencode 编码
 func encodeBencode(msg map[string]interface{}) ([]byte, error) {
-	if msg == nil {
+	if msg == nil || len(msg) == 0 {
 		return nil, errors.New("msg is null")
 	}
 	var err error
@@ -21,7 +21,8 @@ func encodeBencode(msg map[string]interface{}) ([]byte, error) {
 
 // decodeBencode bencode 解码
 func decodeBencode(msg []byte) (map[string]interface{}, error) {
-	if msg == nil {
+
+	if msg == nil || len(msg) == 0 {
 		return nil, errors.New("msg is null")
 	}
 	var result map[string]interface{}
