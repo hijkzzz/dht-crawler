@@ -219,7 +219,7 @@ func (krpc *kRPC) requestFindNode(msg map[string]interface{}, address *net.UDPAd
 		"y": "r",
 		"r": map[string]interface{}{
 			"id":    krpc.nid,
-			"nodes": map[string]interface{}{},
+			"nodes": "",
 		},
 	}
 	krpc.sendKRPC(reMsg, address)
