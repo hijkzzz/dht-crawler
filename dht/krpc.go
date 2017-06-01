@@ -14,7 +14,7 @@ import (
 var TIDLength = 2
 
 // TokenLength Token 长度
-var TokenLength = 2
+var TokenLength = 8
 
 // entropy 随机生成 len 长度的字符串
 func entropy(len int) string {
@@ -126,15 +126,148 @@ func (krpc *kRPC) requestFindNode(msg map[string]interface{}, address *net.UDPAd
 
 // responseAnnouncePeer 处理 announce_peer 请求
 func (krpc *kRPC) requestAnnouncePeer(msg map[string]interface{}, address *net.UDPAddr) {
+	a, ok := msg["a"].(map[string]interface{})
+	if !ok {
+		fmt.Println("Message 'announce_peers' missing 'a'")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+
+	infoHash, ok := a["info_hash"].(string)
+	if !ok {
+		fmt.Println("Message 'get_peers' missing 'info_hash'")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+
+	if len(infoHash) != 20 {
+		fmt.Println("info_hash of message 'get_peers' is error")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+
+	hashMsg := map[string]string{
+		"info_hash": infoHash,
+	}
+
+	krpc.logger <- hashMsg
+
+	fNid, ok := a["id"].(string)
+	if !ok {
+		fmt.Println("Message 'announce_peers' missing 'nid'")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+
+	token, ok := a["token"].(string)
+	if !ok {
+		fmt.Println("Message 'announce_peers' missing 'token'")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+
+	if fNid[0:8] != token {
+		fmt.Println("'token' of message 'announce_peers' is error")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+
+	//tid错误，只打印信息，不调用sendError
+	tid, ok := msg["t"].(string)
+	if !ok {
+		fmt.Println("Message 'announce_peers' missing 'tid'")
+		return
+	}
+
+	reMsg := map[string]interface{}{
+		"t": tid,
+		"y": "r",
+		"r": map[string]interface{}{
+			"id": krpc.nid,
+		},
+	}
+
+	krpc.sendKRPC(reMsg, address)
 
 }
 
 // responseGetPeers 处理 get_peers 请求
 func (krpc *kRPC) requestGetPeers(msg map[string]interface{}, address *net.UDPAddr) {
+	a, ok := msg["a"].(map[string]interface{})
+	if !ok {
+		fmt.Println("Message 'get_peers' missing 'a'")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+
+	//保存info_hash
+	infoHash, ok := a["info_hash"].(string)
+	if !ok {
+		fmt.Println("Message 'get_peers' missing 'info_hash'")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+
+	if len(infoHash) != 20 {
+		fmt.Println("info_hash of message 'get_peers' is error")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+
+	hashMsg := map[string]string{
+		"info_hash": infoHash,
+	}
+
+	krpc.logger <- hashMsg
+
+	//tid错误，只打印信息，不调用sendError
+	tid, ok := msg["t"].(string)
+	if !ok {
+		fmt.Println("Message 'get_peers' missing 'tid'")
+		return
+	}
+
+	fNid, ok := a["id"].(string)
+	if !ok {
+		fmt.Println("Message 'get_peers' missing 'nid'")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+
+	token := fNid[0:8]
+
+	nodes := ""
+
+	reMsg := map[string]interface{}{
+		"t": tid,
+		"y": "r",
+		"r": map[string]interface{}{
+			"id":    krpc.nid,
+			"token": token,
+			"nodes": nodes,
+		},
+	}
+
+	krpc.sendKRPC(reMsg, address)
 
 }
 
-// responseError 发送 error 信息
-func (krpc *kRPC) sendError(msg map[string]interface{}, address *net.UDPAddr) {
+// responseError 发送 error 信息, msg:krpc消息,errNum:错误码(203 协议错误)
+func (krpc *kRPC) sendError(msg map[string]interface{}, errNum int, address *net.UDPAddr) {
+	tid, ok := msg["t"].(string)
+	if !ok {
+		fmt.Println("Message 'announce_peers' missing 'tid'")
+		return
+	}
+
+	errMsg := map[string]interface{}{
+		"t": tid,
+		"y": "e",
+		"e": []interface{}{
+			errNum, "Protocol errors, such as non-standard packages, invalid parameters, or wrong toke",
+		},
+	}
+
+	krpc.sendKRPC(errMsg, address)
 
 }
