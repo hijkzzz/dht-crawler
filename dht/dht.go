@@ -92,6 +92,7 @@ func (dht *DHT) receiveMessages() {
 		y, ok := message["y"].(string)
 		if !ok {
 			fmt.Println("KRPC request missing y field")
+			dht.krpc.sendError(message, 203, raddr)
 			return
 		}
 
@@ -99,6 +100,7 @@ func (dht *DHT) receiveMessages() {
 			q, ok := message["q"].(string)
 			if !ok {
 				fmt.Println("KRPC request missing q field")
+				dht.krpc.sendError(message, 203, raddr)
 				return
 			}
 
@@ -113,13 +115,15 @@ func (dht *DHT) receiveMessages() {
 				// 收集 announce_peer 的 info_hash
 				dht.krpc.requestAnnouncePeer(message, raddr)
 			default:
-				dht.krpc.sendError(message, raddr)
+				dht.krpc.sendError(message, 203, raddr)
 				fmt.Println("KRPC not support 'q' " + q)
 			}
 		} else if y == "r" { //处理响应报文
 			dht.krpc.responseFindNode(message, raddr)
+		} else if y == "e" { //处理错误报文
+			fmt.Println("KRPC value of 'y' is 'e' ")
 		} else {
-			dht.krpc.sendError(message, raddr)
+			dht.krpc.sendError(message, 203, raddr)
 			fmt.Println("KRPC value of 'y' error " + y)
 		}
 	}
