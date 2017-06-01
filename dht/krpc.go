@@ -28,25 +28,58 @@ func entropy(len int) string {
 	return buff.String()
 }
 
+// inet_ntoa 网络字节序 IP 转换为 ASCII
+func inet_ntoa(ipnr []byte) net.IP {
+	if len(ipnr) != 4 {
+		panic("inet_ntoa lenghth of 'ipnr' should be 4")
+	}
+
+	// 192.168.1.1 低位 -> 高位
+	return net.IPv4(ipnr[3], ipnr[2], ipnr[1], ipnr[0])
+}
+
 // decodeCompactNodeInfo Compact Node Info 解码
-func decodeCompactNodeInfo(nodes []interface{}) []*kNode {
-	return nil
+func decodeCompactNodeInfo(nodes interface{}) []*kNode {
+	kNodes := make([]*kNode, 0, 8)
+
+	temp, ok := nodes.(string)
+	if !ok {
+		fmt.Println("CompactNodeInfos is not string")
+	}
+
+	compactNodeInfos := []byte(temp)
+	if len(compactNodeInfos)%26 != 0 {
+		return kNodes
+	}
+
+	for i := 0; i < len(compactNodeInfos); i += 26 {
+		// port 字节序转换
+		var port int
+		port += int(compactNodeInfos[i+25])
+		port += int(compactNodeInfos[i+24]) << 8
+
+		kNodes = append(kNodes, newKNode(
+			string(compactNodeInfos[i:i+20]),
+			inet_ntoa(compactNodeInfos[i+20:i+24]).String(),
+			port,
+		))
+	}
+	return kNodes
 }
 
 // KRPC krpc 协议
 type kRPC struct {
-	nid     string                   // 本节点ID
+	nid     string                   // sha1 生成的 node ID
 	udpConn *net.UDPConn             // UDP 描述符
 	ktable  *kTable                  // DHT 路由表
 	logger  chan<- map[string]string // info_hash 传输
 }
 
-// NewKRPC 新建 krpc 协议
-func newKRPC(dht *DHT) *kRPC {
+// NewKRPC 新建 krpc 协议, seed 作为种子生成 ID
+func newKRPC(dht *DHT, seed string) *kRPC {
 	// 生成 nid
-	rnd := entropy(20)
 	t := sha1.New()
-	io.WriteString(t, rnd)
+	io.WriteString(t, seed)
 	nid := fmt.Sprintf("%x", t.Sum(nil))
 	fmt.Println("[NID] " + nid)
 
@@ -87,12 +120,6 @@ func (krpc *kRPC) sendFindNode(target string, address *net.UDPAddr) {
 
 // responseFindNode 处理 find_node 响应
 func (krpc *kRPC) responseFindNode(msg map[string]interface{}, address *net.UDPAddr) {
-	// 处理消息
-	tid, ok := msg["t"].(string)
-	if !ok {
-		fmt.Println("Message 'find_node' missing 'tid'")
-		return
-	}
 
 	r, ok := msg["r"].(map[string]interface{})
 	if !ok {
@@ -110,6 +137,9 @@ func (krpc *kRPC) responseFindNode(msg map[string]interface{}, address *net.UDPA
 
 	// 路由表更新
 	for _, node := range compactNodeInfos {
+		if len(node.nid) != 20 || node.port < 1 || node.port > 65535 || node.nid == krpc.nid {
+			continue
+		}
 		krpc.ktable.push(node)
 	}
 }
