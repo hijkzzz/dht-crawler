@@ -24,8 +24,8 @@ type DHT struct {
 	waitGroup *sync.WaitGroup        // 等待子线程
 }
 
-// NewDHT 新建 DHT 服务器
-func NewDHT(host string, port int) *DHT {
+// NewDHT 新建 DHT 服务器, seed 作为种子生成 ID
+func NewDHT(host string, port int, seed string) *DHT {
 	// 监听 UDP 端口
 	udpAddress, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
@@ -46,7 +46,7 @@ func NewDHT(host string, port int) *DHT {
 		waitGroup: new(sync.WaitGroup)}
 
 	// krpc 协议初始化
-	dht.krpc = newKRPC(dht)
+	dht.krpc = newKRPC(dht, seed)
 
 	return dht
 }

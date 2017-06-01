@@ -1,9 +1,9 @@
 package main
 
-import (
-	"fmt"
-)
+import "dht-crawler/dht"
 
 func main() {
-	fmt.Println("HelloWorld!")
+	var seed = "@hujian:@liujianbiao:@wangpeijia"
+	dht := dht.NewDHT("127.0.0.1", 34567, seed)
+	dht.Run()
 }
