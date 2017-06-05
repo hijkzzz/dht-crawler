@@ -42,7 +42,7 @@ func TestDecodeCompactNodeInfo(t *testing.T) {
 	}
 }
 
-func Test_SendFindNode(t *testing.T) {
+func Test_RequestGetPeers(t *testing.T) {
 	//返回net.UDPConn 用于发送测试数据
 	udpConn := udpConnOpen("127.0.0.1", 45678)
 
@@ -75,7 +75,7 @@ func Test_RequestAnnouncePeers(t *testing.T) {
 
 }
 
-func Test_RequestGetPeers(t *testing.T) {
+func Test_SendFindNode(t *testing.T) {
 
 }
 

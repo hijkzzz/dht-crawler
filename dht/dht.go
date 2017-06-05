@@ -122,8 +122,9 @@ func (dht *DHT) receiveMessages() {
 			dht.krpc.responseFindNode(message, raddr)
 		} else if y == "e" { //处理错误报文
 			fmt.Println("KRPC value of 'y' is 'e' ")
+			fmt.Println(message)
 		} else {
-			dht.krpc.sendError(message, 203, raddr)
+			dht.krpc.sendError(message, 204, raddr)
 			fmt.Println("KRPC value of 'y' error " + y)
 		}
 	}
