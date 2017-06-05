@@ -151,7 +151,6 @@ func (krpc *kRPC) requestPing(msg map[string]interface{}, address *net.UDPAddr) 
 
 // requestFindNode 处理 find_node 请求
 func (krpc *kRPC) requestFindNode(msg map[string]interface{}, address *net.UDPAddr) {
-
 }
 
 // responseAnnouncePeer 处理 announce_peer 请求
