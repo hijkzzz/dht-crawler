@@ -54,6 +54,7 @@ func NewDHT(host string, port int, seed string) *DHT {
 // Run 运行 DHT 服务器
 func (dht *DHT) Run() {
 	dht.waitGroup.Add(3)
+	defer dht.udpConn.Close()
 
 	// 线程1, 更新路由表
 	go dht.updateKtable()
@@ -70,7 +71,6 @@ func (dht *DHT) Run() {
 // receiveMessages 处理 UDP 报文
 func (dht *DHT) receiveMessages() {
 	defer dht.waitGroup.Done()
-	defer dht.udpConn.Close()
 
 	buff := make([]byte, 65536)
 	for true {
@@ -138,7 +138,7 @@ func (dht *DHT) updateKtable() {
 		len := dht.ktable.size()
 		if len == 0 {
 			for _, node := range BootstrapNodes {
-				dht.krpc.sendFindNode(getNeigborID(node.nid, dht.krpc.nid, 10), node.getUDPAddr())
+				dht.krpc.sendFindNode(getNeigborID(node.nid, dht.krpc.nid, 0), node.getUDPAddr())
 			}
 
 		} else {

@@ -181,6 +181,7 @@ func (krpc *kRPC) requestPing(msg map[string]interface{}, address *net.UDPAddr) 
 
 // requestFindNode 处理 find_node 请求
 func (krpc *kRPC) requestFindNode(msg map[string]interface{}, address *net.UDPAddr) {
+
 	a, ok := msg["a"].(map[string]interface{})
 	if !ok {
 		fmt.Println("Message 'find_node' missing 'a'")
