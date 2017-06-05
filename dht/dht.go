@@ -138,18 +138,16 @@ func (dht *DHT) updateKtable() {
 		len := dht.ktable.size()
 		if len == 0 {
 			for _, node := range BootstrapNodes {
-				dht.krpc.sendFindNode(getNeigborID(node.nid, dht.krpc.nid, 0), node.getUDPAddr())
+				dht.krpc.sendFindNode(getNeigborID(dht.krpc.nid, dht.krpc.nid, 10), node.getUDPAddr())
 			}
-
 		} else {
 			for len > 0 {
 				len--
 				node := dht.ktable.pop()
 				dht.krpc.sendFindNode(getNeigborID(node.nid, dht.krpc.nid, 10), node.getUDPAddr())
 			}
-
-			time.Sleep(1 * time.Second)
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
 

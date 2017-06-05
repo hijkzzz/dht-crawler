@@ -127,7 +127,7 @@ func (krpc *kRPC) responseFindNode(msg map[string]interface{}, address *net.UDPA
 		return
 	}
 
-	nodes, ok := r["nodes"].([]interface{})
+	nodes, ok := r["nodes"].(string)
 	if !ok {
 		fmt.Println("Message 'find_node' missing 'nodes'")
 		return
