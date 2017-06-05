@@ -88,6 +88,8 @@ func (dht *DHT) receiveMessages() {
 			return
 		}
 
+		fmt.Println(message)
+
 		// 报文类型判断
 		y, ok := message["y"].(string)
 		if !ok {

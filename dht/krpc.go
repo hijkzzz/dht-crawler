@@ -88,6 +88,9 @@ func newKRPC(dht *DHT, seed string) *kRPC {
 
 // sendKRPC 发送 KRPC 请求
 func (krpc *kRPC) sendKRPC(msg map[string]interface{}, address *net.UDPAddr) {
+
+	fmt.Println(msg)
+
 	message, err := encodeBencode(msg)
 	if err != nil {
 		fmt.Println(err)
