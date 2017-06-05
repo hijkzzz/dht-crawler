@@ -88,14 +88,16 @@ func (dht *DHT) receiveMessages() {
 			return
 		}
 
-		fmt.Println(message)
-
 		// 报文类型判断
 		y, ok := message["y"].(string)
 		if !ok {
 			fmt.Println("KRPC request missing y field")
 			dht.krpc.sendError(message, 203, raddr)
 			return
+		}
+
+		if y != "r" {
+			fmt.Println("receive: ------------>" + message["y"].(string))
 		}
 
 		if y == "q" { //处理请求报文
