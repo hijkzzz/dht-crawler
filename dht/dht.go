@@ -96,7 +96,7 @@ func (dht *DHT) receiveMessages() {
 			return
 		}
 
-		if y != "r" {
+		if y == "r" {
 			fmt.Println("receive: ------------>" + message["y"].(string))
 		}
 
