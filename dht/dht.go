@@ -96,8 +96,9 @@ func (dht *DHT) receiveMessages() {
 			return
 		}
 
-		if y == "r" {
-			fmt.Println("receive: ------------>" + message["y"].(string))
+		if y != "r" {
+			fmt.Println("receive--------->" + message["y"].(string))
+			fmt.Println(message)
 		}
 
 		if y == "q" { //处理请求报文
