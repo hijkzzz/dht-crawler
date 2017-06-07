@@ -149,7 +149,7 @@ func (dht *DHT) updateKtable() {
 			for len > 0 {
 				len--
 				node := dht.ktable.pop()
-				dht.krpc.sendFindNode(getNeigborID(node.nid, dht.krpc.nid, 18), node.getUDPAddr())
+				dht.krpc.sendFindNode(getNeigborID(node.nid, dht.krpc.nid, 0), node.getUDPAddr())
 			}
 		}
 		time.Sleep(1 * time.Second)
