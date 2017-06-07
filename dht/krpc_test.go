@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"io"
+	"net"
 	"testing"
 )
 
@@ -39,4 +40,92 @@ func TestDecodeCompactNodeInfo(t *testing.T) {
 	for _, kNode := range kNodes {
 		fmt.Println(kNode.getHostPort())
 	}
+}
+
+func Test_RequestGetPeers(t *testing.T) {
+	//返回net.UDPConn 用于发送测试数据
+	udpConn := udpConnOpen("127.0.0.1", 45678)
+
+	msg := map[string]interface{}{
+		"t": "aa",
+		"y": "q",
+		"q": "get_peers",
+		"a": map[string]interface{}{
+			"id":        "mnopqrstuvwxyz12345",
+			"info_hash": "mnopqrstuvwxyz12345",
+		},
+	}
+	//发送测试数据，并打印接受数据
+	sendUDPMessage(udpConn, msg, "127.0.0.1", 34567)
+}
+
+func Test_ResponseFindNode(t *testing.T) {
+
+}
+
+func Test_RequestPing(t *testing.T) {
+
+}
+
+func Test_RequestFindNode(t *testing.T) {
+
+}
+
+func Test_RequestAnnouncePeers(t *testing.T) {
+
+}
+
+func Test_SendFindNode(t *testing.T) {
+
+}
+
+func Test_SendError(t *testing.T) {
+
+}
+
+func udpConnOpen(ip string, port int) *net.UDPConn {
+	udpAddress, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", ip, port))
+	if err != nil {
+		panic(err)
+	}
+
+	udpConn, err := net.ListenUDP("udp", udpAddress)
+	if err != nil {
+		panic(err)
+	}
+
+	return udpConn
+}
+
+func sendUDPMessage(udpConn *net.UDPConn, msg map[string]interface{}, ip string, port int) {
+	defer udpConn.Close()
+
+	message, err := encodeBencode(msg)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", ip, port))
+	if err != nil {
+		panic(err)
+	}
+	_, err = udpConn.WriteToUDP(message, addr)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	buff := make([]byte, 65536)
+	n, _, err := udpConn.ReadFromUDP(buff)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	reMsg, err := decodeBencode(buff[:n])
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(reMsg)
 }
