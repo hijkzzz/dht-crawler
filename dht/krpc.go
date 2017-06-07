@@ -35,7 +35,7 @@ func inet_ntoa(ipnr []byte) net.IP {
 	}
 
 	// 192.168.1.1 低位 -> 高位
-	return net.IPv4(ipnr[3], ipnr[2], ipnr[1], ipnr[0])
+	return net.IPv4(ipnr[0], ipnr[1], ipnr[2], ipnr[3])
 }
 
 // decodeCompactNodeInfo Compact Node Info 解码

@@ -78,14 +78,14 @@ func (dht *DHT) receiveMessages() {
 		n, raddr, err := dht.udpConn.ReadFromUDP(buff)
 		if err != nil {
 			fmt.Println(err)
-			return
+			continue
 		}
 
 		// UDP 数据解码
 		message, err := decodeBencode(buff[:n])
 		if err != nil {
 			fmt.Println(err)
-			return
+			continue
 		}
 
 		// 报文类型判断
@@ -93,7 +93,7 @@ func (dht *DHT) receiveMessages() {
 		if !ok {
 			fmt.Println("KRPC request missing y field")
 			dht.krpc.sendError(message, 203, raddr)
-			return
+			continue
 		}
 
 		if y != "r" {
@@ -106,7 +106,7 @@ func (dht *DHT) receiveMessages() {
 			if !ok {
 				fmt.Println("KRPC request missing q field")
 				dht.krpc.sendError(message, 203, raddr)
-				return
+				continue
 			}
 
 			switch q {
@@ -149,10 +149,12 @@ func (dht *DHT) updateKtable() {
 			for len > 0 {
 				len--
 				node := dht.ktable.pop()
-				dht.krpc.sendFindNode(getNeigborID(node.nid, dht.krpc.nid, 0), node.getUDPAddr())
+				dht.krpc.sendFindNode(getNeigborID(node.nid, dht.krpc.nid, 10), node.getUDPAddr())
 			}
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(10 * time.Second)
+
+		fmt.Println(dht.ktable.size())
 	}
 }
 
