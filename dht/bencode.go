@@ -164,16 +164,16 @@ func decodeDict(data []byte, start int) (map[string]interface{}, int, error) {
 		var err1 error
 		key, end, err1 = decodeInterface(data, end)
 		if err1 != nil {
-			return nil, -1, errors.New("invalid type of dictionary")
+			return nil, -1, errors.New("167：invalid type of dictionary")
 		}
 		switch key.(type) {
 		case string:
 		default:
-			return nil, -1, errors.New("invalid type of dictionary")
+			return nil, -1, errors.New("172：invalid type of dictionary")
 		}
 
 		if data[end] == 'e' {
-			return nil, -1, errors.New("invalid type of dictionary")
+			return nil, -1, errors.New("176：invalid type of dictionary")
 		}
 		if end == len(data) {
 			return nil, -1, errors.New("e not found when decode list")
@@ -181,7 +181,7 @@ func decodeDict(data []byte, start int) (map[string]interface{}, int, error) {
 		var err2 error
 		item, end, err2 = decodeInterface(data, end)
 		if err2 != nil {
-			return nil, -1, errors.New("invalid type of dictionary")
+			return nil, -1, errors.New("184：invalid type of dictionary")
 		}
 		dict[key.(string)] = item
 		if end == len(data) {

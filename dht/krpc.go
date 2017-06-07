@@ -181,6 +181,48 @@ func (krpc *kRPC) requestPing(msg map[string]interface{}, address *net.UDPAddr) 
 
 // requestFindNode 处理 find_node 请求
 func (krpc *kRPC) requestFindNode(msg map[string]interface{}, address *net.UDPAddr) {
+	a, ok := msg["a"].(map[string]interface{})
+	if !ok {
+		fmt.Println("Message 'find_node' missing 'a'")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+	id, ok := a["id"].(string)
+	if !ok {
+		fmt.Println("Message 'find_node' missing 'id'")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+	if len(id) != 20 {
+		fmt.Println("'id' of message 'find_node' is error")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+	target, ok := a["target"].(string)
+	if !ok {
+		fmt.Println("Message 'find_node' missing 'target'")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+	if len(target) != 20 {
+		fmt.Println("'target' of message 'find_node' is error")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+	tid, ok := msg["t"].(string)
+	if !ok {
+		fmt.Println("Message 'announce_peers' missing 'tid'")
+		return
+	}
+	reMsg := map[string]interface{}{
+		"t": tid,
+		"y": "r",
+		"r": map[string]interface{}{
+			"id":    krpc.nid,
+			"nodes": map[string]interface{}{},
+		},
+	}
+	krpc.sendKRPC(reMsg, address)
 
 	a, ok := msg["a"].(map[string]interface{})
 	if !ok {
