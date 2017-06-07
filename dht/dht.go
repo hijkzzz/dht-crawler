@@ -54,6 +54,7 @@ func NewDHT(host string, port int) *DHT {
 // Run 运行 DHT 服务器
 func (dht *DHT) Run() {
 	dht.waitGroup.Add(3)
+	defer dht.udpConn.Close()
 
 	// 线程1, 更新路由表
 	go dht.updateKtable()
@@ -70,7 +71,6 @@ func (dht *DHT) Run() {
 // receiveMessages 处理 UDP 报文
 func (dht *DHT) receiveMessages() {
 	defer dht.waitGroup.Done()
-	defer dht.udpConn.Close()
 
 	buff := make([]byte, 65536)
 	for true {
@@ -92,6 +92,7 @@ func (dht *DHT) receiveMessages() {
 		y, ok := message["y"].(string)
 		if !ok {
 			fmt.Println("KRPC request missing y field")
+			dht.krpc.sendError(message, 203, raddr)
 			return
 		}
 
@@ -99,6 +100,7 @@ func (dht *DHT) receiveMessages() {
 			q, ok := message["q"].(string)
 			if !ok {
 				fmt.Println("KRPC request missing q field")
+				dht.krpc.sendError(message, 203, raddr)
 				return
 			}
 
@@ -113,13 +115,16 @@ func (dht *DHT) receiveMessages() {
 				// 收集 announce_peer 的 info_hash
 				dht.krpc.requestAnnouncePeer(message, raddr)
 			default:
-				dht.krpc.sendError(message, raddr)
+				dht.krpc.sendError(message, 203, raddr)
 				fmt.Println("KRPC not support 'q' " + q)
 			}
 		} else if y == "r" { //处理响应报文
 			dht.krpc.responseFindNode(message, raddr)
+		} else if y == "e" { //处理错误报文
+			fmt.Println("KRPC value of 'y' is 'e' ")
+			fmt.Println(message)
 		} else {
-			dht.krpc.sendError(message, raddr)
+			dht.krpc.sendError(message, 204, raddr)
 			fmt.Println("KRPC value of 'y' error " + y)
 		}
 	}
@@ -133,7 +138,7 @@ func (dht *DHT) updateKtable() {
 		len := dht.ktable.size()
 		if len == 0 {
 			for _, node := range BootstrapNodes {
-				dht.krpc.sendFindNode(getNeigborID(node.nid, dht.krpc.nid, 10), node.getUDPAddr())
+				dht.krpc.sendFindNode(getNeigborID(node.nid, dht.krpc.nid, 0), node.getUDPAddr())
 			}
 
 		} else {

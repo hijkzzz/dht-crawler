@@ -146,11 +146,84 @@ func (krpc *kRPC) responseFindNode(msg map[string]interface{}, address *net.UDPA
 
 // requestPing 处理 ping 请求
 func (krpc *kRPC) requestPing(msg map[string]interface{}, address *net.UDPAddr) {
-	krpc.sendKRPC(msg, address)
+	a, ok := msg["a"].(map[string]interface{})
+	if !ok {
+		fmt.Println("Message 'ping' missing 'a'")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+	id, ok := a["id"].(string)
+	if !ok {
+		fmt.Println("Message 'ping' missing 'id'")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+	if len(id) != 20 {
+		fmt.Println("'id' of message 'ping' is error")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+
+	tid, ok := msg["t"].(string)
+	if !ok {
+		fmt.Println("Message 'announce_peers' missing 'tid'")
+		return
+	}
+	reMsg := map[string]interface{}{
+		"t": tid,
+		"y": "r",
+		"r": map[string]interface{}{
+			"id": krpc.nid,
+		},
+	}
+	krpc.sendKRPC(reMsg, address)
 }
 
 // requestFindNode 处理 find_node 请求
 func (krpc *kRPC) requestFindNode(msg map[string]interface{}, address *net.UDPAddr) {
+
+	a, ok := msg["a"].(map[string]interface{})
+	if !ok {
+		fmt.Println("Message 'find_node' missing 'a'")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+	id, ok := a["id"].(string)
+	if !ok {
+		fmt.Println("Message 'find_node' missing 'id'")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+	if len(id) != 20 {
+		fmt.Println("'id' of message 'find_node' is error")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+	target, ok := a["target"].(string)
+	if !ok {
+		fmt.Println("Message 'find_node' missing 'target'")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+	if len(target) != 20 {
+		fmt.Println("'target' of message 'find_node' is error")
+		krpc.sendError(msg, 203, address)
+		return
+	}
+	tid, ok := msg["t"].(string)
+	if !ok {
+		fmt.Println("Message 'announce_peers' missing 'tid'")
+		return
+	}
+	reMsg := map[string]interface{}{
+		"t": tid,
+		"y": "r",
+		"r": map[string]interface{}{
+			"id":    krpc.nid,
+			"nodes": "",
+		},
+	}
+	krpc.sendKRPC(reMsg, address)
 
 }
 
@@ -290,11 +363,26 @@ func (krpc *kRPC) sendError(msg map[string]interface{}, errNum int, address *net
 		return
 	}
 
+	var errStr string
+	switch errNum {
+	case 201:
+		errStr = "Generic Error"
+	case 202:
+		errStr = "Server Error"
+	case 203:
+		errStr = "Protocol errors, such as matformed packet, invalid arguments, or bad toke"
+	case 204:
+		errStr = "Method unknown"
+	default:
+		fmt.Println("'errNum' is error")
+		return
+	}
+
 	errMsg := map[string]interface{}{
 		"t": tid,
 		"y": "e",
 		"e": []interface{}{
-			errNum, "Protocol errors, such as non-standard packages, invalid parameters, or wrong toke",
+			errNum, errStr,
 		},
 	}
 
