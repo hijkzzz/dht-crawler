@@ -25,7 +25,7 @@ type DHT struct {
 }
 
 // NewDHT 新建 DHT 服务器, seed 作为种子生成 ID
-func NewDHT(host string, port int, seed string) *DHT {
+func NewDHT(host string, port int) *DHT {
 	// 监听 UDP 端口
 	udpAddress, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
@@ -46,7 +46,7 @@ func NewDHT(host string, port int, seed string) *DHT {
 		waitGroup: new(sync.WaitGroup)}
 
 	// krpc 协议初始化
-	dht.krpc = newKRPC(dht, seed)
+	dht.krpc = newKRPC(dht)
 
 	return dht
 }
@@ -142,9 +142,8 @@ func (dht *DHT) updateKtable() {
 				node := dht.ktable.pop()
 				dht.krpc.sendFindNode(getNeigborID(node.nid, dht.krpc.nid, 10), node.getUDPAddr())
 			}
-
-			time.Sleep(1 * time.Second)
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
 

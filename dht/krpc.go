@@ -75,12 +75,12 @@ type kRPC struct {
 	logger  chan<- map[string]string // info_hash 传输
 }
 
-// NewKRPC 新建 krpc 协议, seed 作为种子生成 ID
-func newKRPC(dht *DHT, seed string) *kRPC {
+// NewKRPC 新建 krpc 协议
+func newKRPC(dht *DHT) *kRPC {
 	// 生成 nid
 	t := sha1.New()
-	io.WriteString(t, seed)
-	nid := fmt.Sprintf("%x", t.Sum(nil))
+	io.WriteString(t, entropy(20))
+	nid := string(t.Sum(nil))
 	fmt.Println("[NID] " + nid)
 
 	return &kRPC{nid: nid, udpConn: dht.udpConn, ktable: dht.ktable, logger: dht.logger}
