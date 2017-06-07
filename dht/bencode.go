@@ -29,7 +29,7 @@ func decodeBencode(msg []byte) (map[string]interface{}, error) {
 	var err error
 	result, _, err = decodeDict(msg, 0)
 	if err != nil {
-		return nil, errors.New("DecodeBencode")
+		return nil, err
 	}
 	return result, nil
 }
